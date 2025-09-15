@@ -1,0 +1,281 @@
+/* Reset et styles globaux */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Classes utilitaires */
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+.bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Styles pour les émojis */
+.emoji {
+  font-size: 1.2em;
+  margin-right: 8px;
+}
+
+.emoji-large {
+  font-size: 2em;
+}
+
+.emoji-xl {
+  font-size: 3em;
+}
+
+/* Styles pour le timer */
+.timer-danger {
+  color: #f56565;
+  animation: pulse 1s infinite;
+}
+
+.timer-warning {
+  color: #ed8936;
+}
+
+.timer-safe {
+  color: #48bb78;
+}
+
+/* Styles pour les scores */
+.score-animation {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.score-positive {
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.score-negative {
+  color: #f56565;
+  font-weight: bold;
+}
+
+/* Styles pour les réponses */
+.answer-correct {
+  background-color: #c6f6d5 !important;
+  border-color: #48bb78 !important;
+  color: #2f855a !important;
+}
+
+.answer-incorrect {
+  background-color: #fed7d7 !important;
+  border-color: #f56565 !important;
+  color: #c53030 !important;
+}
+
+.answer-selected {
+  background-color: #bee3f8 !important;
+  border-color: #3182ce !important;
+  color: #2b6cb0 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mobile-padding {
+    padding: 1rem;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .mobile-hidden {
+    display: none;
+  }
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Loading states */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.full-height {
+  height: 100vh;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+/* Game specific styles */
+.game-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.question-card {
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-item {
+  transition: background-color 0.3s ease;
+}
+
+.leaderboard-item:hover {
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+/* Status indicators */
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.status-online {
+  background-color: #48bb78;
+}
+
+.status-offline {
+  background-color: #a0aec0;
+}
+
+.status-playing {
+  background-color: #ed8936;
+}
+
+.status-spectator {
+  background-color: #667eea;
+}
