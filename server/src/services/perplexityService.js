@@ -1,14 +1,14 @@
-const axios = require('axios');
-const Question = require('../models/Question');
-const logger = require('../utils/logger');
+const axios = require('axios')
+const Question = require('../models/Question')
+const logger = require('../utils/logger')
 
-const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || 'pplx-7b-chat';
+const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || 'pplx-7b-chat'
 
 class PerplexityService {
   constructor() {
-    this.model = PERPLEXITY_MODEL;
-    this.apiUrl = 'https://api.perplexity.ai/v1/chat/completions';
+    this.model = PERPLEXITY_MODEL
+    this.apiUrl = 'https://api.perplexity.ai/v1/chat/completions'
   }
 
   /**
@@ -20,7 +20,7 @@ class PerplexityService {
    */
   async generateQuestions(category = 'general', count = 1, difficulty = 'medium') {
     try {
-      const prompt = this.buildPrompt(category, difficulty, count);
+      const prompt = this.buildPrompt(category, difficulty, count)
 
       const response = await axios.post(
         this.apiUrl,
@@ -45,36 +45,36 @@ class PerplexityService {
             'Content-Type': 'application/json'
           }
         }
-      );
+      )
 
-      const completion = response.data;
-      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
-      const questionsData = JSON.parse(answerContent);
+      const completion = response.data
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text
+      const questionsData = JSON.parse(answerContent)
 
       // Valider et formater les questions
-      const formattedQuestions = this.validateAndFormatQuestions(questionsData.questions, category);
+      const formattedQuestions = this.validateAndFormatQuestions(questionsData.questions, category)
 
       // Sauvegarder les questions en base
-      const savedQuestions = [];
+      const savedQuestions = []
       for (const questionData of formattedQuestions) {
         try {
           const question = new Question({
             ...questionData,
             source: 'perplexity',
             approved: true
-          });
-          await question.save();
-          savedQuestions.push(question);
+          })
+          await question.save()
+          savedQuestions.push(question)
         } catch (error) {
-          logger.error('Erreur sauvegarde question:', error);
+          logger.error('Erreur sauvegarde question:', error)
         }
       }
 
-      return savedQuestions;
+      return savedQuestions
 
     } catch (error) {
-      logger.error('Erreur génération questions Perplexity:', error.response?.data || error.message || error);
-      throw new Error('Erreur lors de la génération des questions');
+      logger.error('Erreur génération questions Perplexity:', error.response?.data || error.message || error)
+      throw new Error('Erreur lors de la génération des questions')
     }
   }
 
@@ -90,13 +90,13 @@ class PerplexityService {
       astronomy: 'astronomie',
       geology: 'géologie',
       general: 'sciences générales'
-    };
+    }
 
     const difficultyNames = {
       easy: 'niveau débutant',
       medium: 'niveau intermédiaire',
       hard: 'niveau avancé'
-    };
+    }
 
     return `Génère ${count} question(s) de quiz en ${categoryNames[category] || 'sciences'} de ${difficultyNames[difficulty] || 'niveau intermédiaire'}.
 
@@ -125,7 +125,7 @@ Format de réponse JSON:
       "tags": ["tag1", "tag2"]
     }
   ]
-}`;
+}`
   }
 
   /**
@@ -135,30 +135,30 @@ Format de réponse JSON:
     return questions.filter(q => {
       // Vérifier la structure de base
       if (!q.question || !q.options || !q.explanation) {
-        logger.warn('Question mal formatée ignorée:', q);
-        return false;
+        logger.warn('Question mal formatée ignorée:', q)
+        return false
       }
 
       // Vérifier qu'il y a 4 options
       if (q.options.length !== 4) {
-        logger.warn('Question avec mauvais nombre d\'options ignorée:', q);
-        return false;
+        logger.warn('Question avec mauvais nombre d\'options ignorée:', q)
+        return false
       }
 
       // Vérifier qu'il y a exactement une bonne réponse
-      const correctAnswers = q.options.filter(opt => opt.isCorrect);
+      const correctAnswers = q.options.filter(opt => opt.isCorrect)
       if (correctAnswers.length !== 1) {
-        logger.warn('Question avec mauvais nombre de bonnes réponses ignorée:', q);
-        return false;
+        logger.warn('Question avec mauvais nombre de bonnes réponses ignorée:', q)
+        return false
       }
 
-      return true;
+      return true
     }).map(q => ({
       ...q,
       category: q.category || category,
       tags: q.tags || [],
       difficulty: q.difficulty || 'medium'
-    }));
+    }))
   }
 
   /**
@@ -176,7 +176,7 @@ Génère une explication courte et bienveillante (maximum 100 mots) qui:
 - Si la réponse utilisateur est fausse, explique pourquoi sans être condescendant
 - Donne une information scientifique intéressante en rapport
 
-Réponds uniquement avec le texte de l'explication, sans formatage.`;
+Réponds uniquement avec le texte de l'explication, sans formatage.`
 
       const response = await axios.post(
         this.apiUrl,
@@ -201,15 +201,15 @@ Réponds uniquement avec le texte de l'explication, sans formatage.`;
             'Content-Type': 'application/json'
           }
         }
-      );
+      )
 
-      const completion = response.data;
-      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
-      return answerContent?.trim() || 'Explication non disponible pour le moment.';
+      const completion = response.data
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text
+      return answerContent?.trim() || 'Explication non disponible pour le moment.'
 
     } catch (error) {
-      logger.error('Erreur génération explication:', error.response?.data || error.message || error);
-      return 'Explication non disponible pour le moment.';
+      logger.error('Erreur génération explication:', error.response?.data || error.message || error)
+      return 'Explication non disponible pour le moment.'
     }
   }
 
@@ -240,7 +240,7 @@ Réponds avec ce format JSON:
   "issues": ["problème1", "problème2"],
   "suggestions": "Suggestions d'amélioration",
   "confidence": 0.8
-}`;
+}`
 
       const response = await axios.post(
         this.apiUrl,
@@ -265,22 +265,22 @@ Réponds avec ce format JSON:
             'Content-Type': 'application/json'
           }
         }
-      );
+      )
 
-      const completion = response.data;
-      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
-      return JSON.parse(answerContent);
+      const completion = response.data
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text
+      return JSON.parse(answerContent)
 
     } catch (error) {
-      logger.error('Erreur validation question:', error.response?.data || error.message || error);
+      logger.error('Erreur validation question:', error.response?.data || error.message || error)
       return {
         isValid: false,
         issues: ['Erreur lors de la validation'],
         suggestions: 'Validation manuelle requise',
         confidence: 0
-      };
+      }
     }
   }
 }
 
-module.exports = new PerplexityService();
+module.exports = new PerplexityService()

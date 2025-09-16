@@ -1,13 +1,13 @@
-const express = require('express');
-const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const Game = require('../models/Game');
-const Question = require('../models/Question');
-const { auth, adminAuth } = require('../middleware/auth');
-const perplexityService = require('../services/perplexityService');
-const logger = require('../utils/logger');
+const express = require('express')
+const { body, validationResult } = require('express-validator')
+const User = require('../models/User')
+const Game = require('../models/Game')
+const Question = require('../models/Question')
+const { auth, adminAuth } = require('../middleware/auth')
+const perplexityService = require('../services/perplexityService')
+const logger = require('../utils/logger')
 
-const router = express.Router();
+const router = express.Router()
 
 // Tableau de bord admin
 router.get('/dashboard', auth, adminAuth, async (req, res) => {
@@ -30,7 +30,7 @@ router.get('/dashboard', auth, adminAuth, async (req, res) => {
         .limit(10)
         .populate('createdBy', 'username')
         .populate('winner', 'username')
-    ]);
+    ])
 
     const formattedRecentGames = recentGames.map(game => ({
       id: game._id,
@@ -41,7 +41,7 @@ router.get('/dashboard', auth, adminAuth, async (req, res) => {
       createdBy: game.createdBy.username,
       createdAt: game.createdAt,
       winner: game.winner?.username || null
-    }));
+    }))
 
     res.json({
       stats: {
@@ -52,28 +52,28 @@ router.get('/dashboard', auth, adminAuth, async (req, res) => {
         totalQuestions
       },
       recentGames: formattedRecentGames
-    });
+    })
 
   } catch (error) {
-    logger.error('Erreur dashboard admin:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur dashboard admin:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Gestion des utilisateurs
 router.get('/users', auth, adminAuth, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 20
+    const skip = (page - 1) * limit
 
     const users = await User.find()
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
 
-    const total = await User.countDocuments();
+    const total = await User.countDocuments()
 
     res.json({
       users,
@@ -83,26 +83,26 @@ router.get('/users', auth, adminAuth, async (req, res) => {
         hasNext: page * limit < total,
         hasPrev: page > 1
       }
-    });
+    })
 
   } catch (error) {
-    logger.error('Erreur liste utilisateurs:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur liste utilisateurs:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Suspendre/activer un utilisateur
 router.patch('/users/:userId/status', auth, adminAuth, async (req, res) => {
   try {
-    const { isActive } = req.body;
-    const user = await User.findById(req.params.userId);
+    const { isActive } = req.body
+    const user = await User.findById(req.params.userId)
 
     if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      return res.status(404).json({ error: 'Utilisateur non trouvé' })
     }
 
-    user.isActive = isActive;
-    await user.save();
+    user.isActive = isActive
+    await user.save()
 
     res.json({
       message: `Utilisateur ${isActive ? 'activé' : 'suspendu'} avec succès`,
@@ -111,35 +111,35 @@ router.patch('/users/:userId/status', auth, adminAuth, async (req, res) => {
         username: user.username,
         isActive: user.isActive
       }
-    });
+    })
 
-    logger.info(`Utilisateur ${user.username} ${isActive ? 'activé' : 'suspendu'} par ${req.user.username}`);
+    logger.info(`Utilisateur ${user.username} ${isActive ? 'activé' : 'suspendu'} par ${req.user.username}`)
 
   } catch (error) {
-    logger.error('Erreur modification statut utilisateur:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur modification statut utilisateur:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Gestion des parties (admin)
 router.get('/games', auth, adminAuth, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const status = req.query.status;
-    const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 20
+    const status = req.query.status
+    const skip = (page - 1) * limit
 
-    const filter = {};
-    if (status) filter.status = status;
+    const filter = {}
+    if (status) filter.status = status
 
     const games = await Game.find(filter)
       .populate('createdBy', 'username')
       .populate('winner', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
 
-    const total = await Game.countDocuments(filter);
+    const total = await Game.countDocuments(filter)
 
     const formattedGames = games.map(game => ({
       id: game._id,
@@ -153,7 +153,7 @@ router.get('/games', auth, adminAuth, async (req, res) => {
       startedAt: game.startedAt,
       finishedAt: game.finishedAt,
       winner: game.winner?.username || null
-    }));
+    }))
 
     res.json({
       games: formattedGames,
@@ -163,60 +163,60 @@ router.get('/games', auth, adminAuth, async (req, res) => {
         hasNext: page * limit < total,
         hasPrev: page > 1
       }
-    });
+    })
 
   } catch (error) {
-    logger.error('Erreur liste parties admin:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur liste parties admin:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Supprimer une partie
 router.delete('/games/:gameId', auth, adminAuth, async (req, res) => {
   try {
-    const game = await Game.findById(req.params.gameId);
+    const game = await Game.findById(req.params.gameId)
 
     if (!game) {
-      return res.status(404).json({ error: 'Partie non trouvée' });
+      return res.status(404).json({ error: 'Partie non trouvée' })
     }
 
     if (game.status === 'playing') {
-      return res.status(400).json({ error: 'Impossible de supprimer une partie en cours' });
+      return res.status(400).json({ error: 'Impossible de supprimer une partie en cours' })
     }
 
-    await Game.findByIdAndDelete(req.params.gameId);
+    await Game.findByIdAndDelete(req.params.gameId)
 
-    res.json({ message: 'Partie supprimée avec succès' });
+    res.json({ message: 'Partie supprimée avec succès' })
 
-    logger.info(`Partie ${game.name} supprimée par ${req.user.username}`);
+    logger.info(`Partie ${game.name} supprimée par ${req.user.username}`)
 
   } catch (error) {
-    logger.error('Erreur suppression partie:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur suppression partie:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Gestion des questions
 router.get('/questions', auth, adminAuth, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const category = req.query.category;
-    const approved = req.query.approved;
-    const skip = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 20
+    const category = req.query.category
+    const approved = req.query.approved
+    const skip = (page - 1) * limit
 
-    const filter = {};
-    if (category) filter.category = category;
-    if (approved !== undefined) filter.approved = approved === 'true';
+    const filter = {}
+    if (category) filter.category = category
+    if (approved !== undefined) filter.approved = approved === 'true'
 
     const questions = await Question.find(filter)
       .populate('createdBy', 'username')
       .populate('approvedBy', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
 
-    const total = await Question.countDocuments(filter);
+    const total = await Question.countDocuments(filter)
 
     res.json({
       questions,
@@ -226,27 +226,27 @@ router.get('/questions', auth, adminAuth, async (req, res) => {
         hasNext: page * limit < total,
         hasPrev: page > 1
       }
-    });
+    })
 
   } catch (error) {
-    logger.error('Erreur liste questions admin:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur liste questions admin:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Approuver/rejeter une question
 router.patch('/questions/:questionId/approve', auth, adminAuth, async (req, res) => {
   try {
-    const { approved } = req.body;
-    const question = await Question.findById(req.params.questionId);
+    const { approved } = req.body
+    const question = await Question.findById(req.params.questionId)
 
     if (!question) {
-      return res.status(404).json({ error: 'Question non trouvée' });
+      return res.status(404).json({ error: 'Question non trouvée' })
     }
 
-    question.approved = approved;
-    question.approvedBy = req.user._id;
-    await question.save();
+    question.approved = approved
+    question.approvedBy = req.user._id
+    await question.save()
 
     res.json({
       message: `Question ${approved ? 'approuvée' : 'rejetée'} avec succès`,
@@ -254,15 +254,15 @@ router.patch('/questions/:questionId/approve', auth, adminAuth, async (req, res)
         id: question._id,
         approved: question.approved
       }
-    });
+    })
 
-    logger.info(`Question ${question._id} ${approved ? 'approuvée' : 'rejetée'} par ${req.user.username}`);
+    logger.info(`Question ${question._id} ${approved ? 'approuvée' : 'rejetée'} par ${req.user.username}`)
 
   } catch (error) {
-    logger.error('Erreur approbation question:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur approbation question:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
 // Générer des questions via OpenAI
 router.post('/questions/generate', auth, adminAuth, [
@@ -271,14 +271,14 @@ router.post('/questions/generate', auth, adminAuth, [
   body('difficulty').optional().isIn(['easy', 'medium', 'hard'])
 ], async (req, res) => {
   try {
-    const errors = validationResult(req);
+    const errors = validationResult(req)
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() })
     }
 
-    const { category, count, difficulty = 'medium' } = req.body;
+    const { category, count, difficulty = 'medium' } = req.body
 
-    const questions = await openaiService.generateQuestions(category, count, difficulty);
+    const questions = await openaiService.generateQuestions(category, count, difficulty)
 
     res.json({
       message: `${questions.length} question(s) générée(s) avec succès`,
@@ -289,73 +289,73 @@ router.post('/questions/generate', auth, adminAuth, [
         difficulty: q.difficulty,
         createdAt: q.createdAt
       }))
-    });
+    })
 
-    logger.info(`${questions.length} questions générées en ${category} par ${req.user.username}`);
+    logger.info(`${questions.length} questions générées en ${category} par ${req.user.username}`)
 
   } catch (error) {
-    logger.error('Erreur génération questions:', error);
-    res.status(500).json({ error: 'Erreur lors de la génération des questions' });
+    logger.error('Erreur génération questions:', error)
+    res.status(500).json({ error: 'Erreur lors de la génération des questions' })
   }
-});
+})
 
 // Exporter les données en CSV
 router.get('/export/:type', auth, adminAuth, async (req, res) => {
   try {
-    const { type } = req.params;
+    const { type } = req.params
     
-    let data = [];
-    let filename = '';
-    let headers = [];
+    let data = []
+    let filename = ''
+    let headers = []
 
     switch (type) {
-      case 'users':
-        data = await User.find().select('-password').lean();
-        filename = 'users_export.csv';
-        headers = ['username', 'email', 'role', 'stats.totalGames', 'stats.totalWins', 'createdAt'];
-        break;
+    case 'users':
+      data = await User.find().select('-password').lean()
+      filename = 'users_export.csv'
+      headers = ['username', 'email', 'role', 'stats.totalGames', 'stats.totalWins', 'createdAt']
+      break
         
-      case 'games':
-        data = await Game.find({ status: 'finished' })
-          .populate('createdBy', 'username')
-          .populate('winner', 'username')
-          .lean();
-        filename = 'games_export.csv';
-        headers = ['name', 'category', 'gameStats.totalPlayers', 'createdBy.username', 'winner.username', 'createdAt', 'finishedAt'];
-        break;
+    case 'games':
+      data = await Game.find({ status: 'finished' })
+        .populate('createdBy', 'username')
+        .populate('winner', 'username')
+        .lean()
+      filename = 'games_export.csv'
+      headers = ['name', 'category', 'gameStats.totalPlayers', 'createdBy.username', 'winner.username', 'createdAt', 'finishedAt']
+      break
         
-      case 'questions':
-        data = await Question.find().populate('createdBy', 'username').lean();
-        filename = 'questions_export.csv';
-        headers = ['question', 'category', 'difficulty', 'source', 'usageCount', 'correctAnswerRate', 'createdAt'];
-        break;
+    case 'questions':
+      data = await Question.find().populate('createdBy', 'username').lean()
+      filename = 'questions_export.csv'
+      headers = ['question', 'category', 'difficulty', 'source', 'usageCount', 'correctAnswerRate', 'createdAt']
+      break
         
-      default:
-        return res.status(400).json({ error: 'Type d\'export invalide' });
+    default:
+      return res.status(400).json({ error: 'Type d\'export invalide' })
     }
 
     // Convertir en CSV simple
-    const csvLines = [headers.join(',')];
+    const csvLines = [headers.join(',')]
     
     data.forEach(item => {
       const values = headers.map(header => {
-        const value = header.split('.').reduce((obj, key) => obj?.[key], item);
-        return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value || '';
-      });
-      csvLines.push(values.join(','));
-    });
+        const value = header.split('.').reduce((obj, key) => obj?.[key], item)
+        return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value || ''
+      })
+      csvLines.push(values.join(','))
+    })
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.send(csvLines.join('\n'));
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`)
+    res.send(csvLines.join('\n'))
 
-    logger.info(`Export ${type} effectué par ${req.user.username}`);
+    logger.info(`Export ${type} effectué par ${req.user.username}`)
 
   } catch (error) {
-    logger.error('Erreur export:', error);
-    res.status(500).json({ error: 'Erreur lors de l\'export' });
+    logger.error('Erreur export:', error)
+    res.status(500).json({ error: 'Erreur lors de l\'export' })
   }
-});
+})
 
 // Statistiques détaillées
 router.get('/stats/detailed', auth, adminAuth, async (req, res) => {
@@ -400,7 +400,7 @@ router.get('/stats/detailed', auth, adminAuth, async (req, res) => {
         User.find().sort({ createdAt: -1 }).limit(5).select('username createdAt'),
         Game.find().sort({ createdAt: -1 }).limit(5).select('name createdAt').populate('createdBy', 'username')
       ])
-    ]);
+    ])
 
     res.json({
       users: userStats[0] || {},
@@ -410,12 +410,80 @@ router.get('/stats/detailed', auth, adminAuth, async (req, res) => {
         newUsers: recentActivity[0],
         newGames: recentActivity[1]
       }
-    });
+    })
 
   } catch (error) {
-    logger.error('Erreur stats détaillées:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
+    logger.error('Erreur stats détaillées:', error)
+    res.status(500).json({ error: 'Erreur serveur' })
   }
-});
+})
 
-module.exports = router;
+// Reset complet de la base de données
+router.post('/reset', auth, adminAuth, async (req, res) => {
+  try {
+    // Vérification supplémentaire de sécurité
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Accès refusé - Droits administrateur requis' })
+    }
+
+    logger.warn(`Début du reset de la base de données par ${req.user.username}`)
+
+    // 1. Supprimer toutes les parties (en cours et historiques)
+    const deletedGames = await Game.deleteMany({})
+    logger.info(`${deletedGames.deletedCount} parties supprimées`)
+
+    // 2. Réinitialiser les statistiques de tous les utilisateurs non-admin
+    const resetUsersResult = await User.updateMany(
+      { role: { $ne: 'admin' } }, // Tous sauf les admins
+      {
+        $set: {
+          'stats.totalGames': 0,
+          'stats.totalWins': 0,
+          'stats.totalCorrectAnswers': 0,
+          'stats.totalQuestions': 0,
+          'stats.averageResponseTime': 0,
+          'stats.currentStreak': 0,
+          'stats.bestStreak': 0,
+          'stats.totalScore': 0
+        },
+        $unset: {
+          'badges': 1,
+          'gameHistory': 1
+        }
+      }
+    )
+    logger.info(`${resetUsersResult.modifiedCount} utilisateurs réinitialisés`)
+
+    // 3. Réinitialiser les tableaux badges et gameHistory pour tous les utilisateurs non-admin
+    await User.updateMany(
+      { role: { $ne: 'admin' } },
+      {
+        $set: {
+          'badges': [],
+          'gameHistory': []
+        }
+      }
+    )
+
+    logger.warn(`Reset de la base de données terminé par ${req.user.username}`)
+
+    res.json({
+      success: true,
+      message: 'Base de données réinitialisée avec succès',
+      details: {
+        gamesDeleted: deletedGames.deletedCount,
+        usersReset: resetUsersResult.modifiedCount,
+        adminsPreserved: true
+      }
+    })
+
+  } catch (error) {
+    logger.error('Erreur lors du reset de la base de données:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur serveur lors de la réinitialisation' 
+    })
+  }
+})
+
+module.exports = router

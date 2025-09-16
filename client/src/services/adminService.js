@@ -34,6 +34,12 @@ const apiService = {
   // Suppression utilisateur
   async deleteUser(id) {
     await api.delete(`/admin/users/${id}`)
+  },
+
+  // Reset complet de la base de données
+  async resetDatabase() {
+    const { data } = await api.post('/admin/reset')
+    return data
   }
 }
 

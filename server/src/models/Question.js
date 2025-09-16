@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const questionSchema = new mongoose.Schema({
   question: {
@@ -67,47 +67,47 @@ const questionSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
-});
+})
 
 // Index pour les recherches
-questionSchema.index({ category: 1, approved: 1, isActive: 1 });
-questionSchema.index({ difficulty: 1 });
-questionSchema.index({ tags: 1 });
+questionSchema.index({ category: 1, approved: 1, isActive: 1 })
+questionSchema.index({ difficulty: 1 })
+questionSchema.index({ tags: 1 })
 
 // Validation pour s'assurer qu'il y a exactement une bonne réponse
 questionSchema.pre('save', function(next) {
-  const correctAnswers = this.options.filter(option => option.isCorrect);
+  const correctAnswers = this.options.filter(option => option.isCorrect)
   
   if (correctAnswers.length !== 1) {
-    return next(new Error('Une question doit avoir exactement une bonne réponse'));
+    return next(new Error('Une question doit avoir exactement une bonne réponse'))
   }
   
   if (this.options.length !== 4) {
-    return next(new Error('Une question doit avoir exactement 4 options'));
+    return next(new Error('Une question doit avoir exactement 4 options'))
   }
   
-  next();
-});
+  next()
+})
 
 // Méthode pour obtenir la bonne réponse
 questionSchema.methods.getCorrectAnswer = function() {
-  return this.options.find(option => option.isCorrect);
-};
+  return this.options.find(option => option.isCorrect)
+}
 
 // Méthode pour mettre à jour les statistiques d'utilisation
 questionSchema.methods.updateUsageStats = function(responseData) {
-  this.usageCount += 1;
+  this.usageCount += 1
   
   // Mise à jour du taux de bonnes réponses
-  const totalCorrect = responseData.totalCorrect || 0;
-  const totalAnswers = responseData.totalAnswers || 1;
+  const totalCorrect = responseData.totalCorrect || 0
+  const totalAnswers = responseData.totalAnswers || 1
   
-  this.correctAnswerRate = (this.correctAnswerRate * (this.usageCount - 1) + (totalCorrect / totalAnswers)) / this.usageCount;
+  this.correctAnswerRate = (this.correctAnswerRate * (this.usageCount - 1) + (totalCorrect / totalAnswers)) / this.usageCount
   
   // Mise à jour du temps de réponse moyen
   if (responseData.averageTime) {
-    this.averageResponseTime = (this.averageResponseTime * (this.usageCount - 1) + responseData.averageTime) / this.usageCount;
+    this.averageResponseTime = (this.averageResponseTime * (this.usageCount - 1) + responseData.averageTime) / this.usageCount
   }
-};
+}
 
-module.exports = mongoose.model('Question', questionSchema);
+module.exports = mongoose.model('Question', questionSchema)
