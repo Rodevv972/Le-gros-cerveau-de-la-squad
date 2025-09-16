@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Game = require('../models/Game');
 const Question = require('../models/Question');
 const { auth, adminAuth } = require('../middleware/auth');
-const openaiService = require('../services/openaiService');
+const perplexityService = require('../services/perplexityService');
 const logger = require('../utils/logger');
 
 const router = express.Router();

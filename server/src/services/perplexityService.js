@@ -1,18 +1,18 @@
-const OpenAI = require('openai');
+const axios = require('axios');
 const Question = require('../models/Question');
 const logger = require('../utils/logger');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || 'pplx-7b-chat';
 
-class OpenAIService {
+class PerplexityService {
   constructor() {
-    this.model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+    this.model = PERPLEXITY_MODEL;
+    this.apiUrl = 'https://api.perplexity.ai/v1/chat/completions';
   }
 
   /**
-   * Génère des questions de quiz scientifique via OpenAI
+   * Génère des questions de quiz scientifique via Perplexity
    * @param {string} category - Catégorie scientifique
    * @param {number} count - Nombre de questions à générer
    * @param {string} difficulty - Niveau de difficulté
@@ -21,36 +21,46 @@ class OpenAIService {
   async generateQuestions(category = 'general', count = 1, difficulty = 'medium') {
     try {
       const prompt = this.buildPrompt(category, difficulty, count);
-      
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'Tu es un expert en sciences qui crée des questions de quiz éducatives et précises. Réponds uniquement en JSON valide.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      });
 
-      const response = completion.choices[0].message.content;
-      const questionsData = JSON.parse(response);
-      
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un expert en sciences qui crée des questions de quiz éducatives et précises. Réponds uniquement en JSON valide.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const completion = response.data;
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
+      const questionsData = JSON.parse(answerContent);
+
       // Valider et formater les questions
       const formattedQuestions = this.validateAndFormatQuestions(questionsData.questions, category);
-      
+
       // Sauvegarder les questions en base
       const savedQuestions = [];
       for (const questionData of formattedQuestions) {
         try {
           const question = new Question({
             ...questionData,
-            source: 'openai',
+            source: 'perplexity',
             approved: true
           });
           await question.save();
@@ -59,17 +69,17 @@ class OpenAIService {
           logger.error('Erreur sauvegarde question:', error);
         }
       }
-      
+
       return savedQuestions;
-      
+
     } catch (error) {
-      logger.error('Erreur génération questions OpenAI:', error);
+      logger.error('Erreur génération questions Perplexity:', error.response?.data || error.message || error);
       throw new Error('Erreur lors de la génération des questions');
     }
   }
 
   /**
-   * Construit le prompt pour OpenAI
+   * Construit le prompt pour Perplexity
    */
   buildPrompt(category, difficulty, count) {
     const categoryNames = {
@@ -119,7 +129,7 @@ Format de réponse JSON:
   }
 
   /**
-   * Valide et formate les questions reçues d'OpenAI
+   * Valide et formate les questions reçues de Perplexity
    */
   validateAndFormatQuestions(questions, category) {
     return questions.filter(q => {
@@ -168,26 +178,37 @@ Génère une explication courte et bienveillante (maximum 100 mots) qui:
 
 Réponds uniquement avec le texte de l'explication, sans formatage.`;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'Tu es un professeur de sciences bienveillant qui explique les concepts de manière claire et encourageante.'
-          },
-          {
-            role: 'user',
-            content: prompt
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un professeur de sciences bienveillant qui explique les concepts de manière claire et encourageante.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json'
           }
-        ],
-        temperature: 0.7,
-        max_tokens: 200
-      });
+        }
+      );
 
-      return completion.choices[0].message.content.trim();
-      
+      const completion = response.data;
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
+      return answerContent?.trim() || 'Explication non disponible pour le moment.';
+
     } catch (error) {
-      logger.error('Erreur génération explication:', error);
+      logger.error('Erreur génération explication:', error.response?.data || error.message || error);
       return 'Explication non disponible pour le moment.';
     }
   }
@@ -221,26 +242,37 @@ Réponds avec ce format JSON:
   "confidence": 0.8
 }`;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          {
-            role: 'system',
-            content: 'Tu es un expert scientifique qui valide la qualité et l\'exactitude des questions de quiz.'
-          },
-          {
-            role: 'user',
-            content: prompt
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'Tu es un expert scientifique qui valide la qualité et l\'exactitude des questions de quiz.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 500
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json'
           }
-        ],
-        temperature: 0.3,
-        max_tokens: 500
-      });
+        }
+      );
 
-      return JSON.parse(completion.choices[0].message.content);
-      
+      const completion = response.data;
+      const answerContent = completion.choices?.[0]?.message?.content || completion.choices?.[0]?.text;
+      return JSON.parse(answerContent);
+
     } catch (error) {
-      logger.error('Erreur validation question:', error);
+      logger.error('Erreur validation question:', error.response?.data || error.message || error);
       return {
         isValid: false,
         issues: ['Erreur lors de la validation'],
@@ -251,4 +283,4 @@ Réponds avec ce format JSON:
   }
 }
 
-module.exports = new OpenAIService();
+module.exports = new PerplexityService();

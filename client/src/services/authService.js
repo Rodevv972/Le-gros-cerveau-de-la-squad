@@ -2,7 +2,9 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
-// Configuration axios
+// Helper pour vérifier l'URL utilisée
+export const getApiUrl = () => API_URL
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
@@ -17,9 +19,7 @@ api.interceptors.request.use(
     }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 // Intercepteur pour gérer les réponses
@@ -31,6 +31,10 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
+    } else {
+      // Autres erreurs serveur
+      // Optionnel: Affiche un toast ou log
+      // console.error('Erreur API:', error)
     }
     return Promise.reject(error)
   }
@@ -49,15 +53,19 @@ const authService = {
     return response.data
   },
 
-  // Déconnexion
+  // Déconnexion (pas de body)
   async logout() {
     const response = await api.post('/auth/logout')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     return response.data
   },
 
   // Refresh token
-  async refreshToken(token) {
-    const response = await api.post('/auth/refresh', { token })
+  async refreshToken(token = null) {
+    // Si pas de token passé, essaie de le récupérer dans le stockage
+    const usedToken = token || localStorage.getItem('token')
+    const response = await api.post('/auth/refresh', { token: usedToken })
     return response.data
   },
 }

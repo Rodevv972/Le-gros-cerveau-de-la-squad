@@ -26,5 +26,8 @@
     "url": "https://github.com/Rodevv972/Le-gros-cerveau-de-la-squad.git"
   },
   "author": "Squad Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.12.2"
+  }
 }

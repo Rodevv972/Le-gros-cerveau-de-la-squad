@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { io } from 'socket.io-client'
 import { useAuth } from './AuthContext'
 import { toast } from 'react-toastify'
@@ -6,11 +6,11 @@ import { toast } from 'react-toastify'
 const SocketContext = createContext()
 
 export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null)
   const [connected, setConnected] = useState(false)
   const [currentGame, setCurrentGame] = useState(null)
   const [gameData, setGameData] = useState(null)
   const { user, getToken } = useAuth()
+  const socketRef = useRef(null)
 
   useEffect(() => {
     if (user && getToken()) {
@@ -19,22 +19,32 @@ export const SocketProvider = ({ children }) => {
       disconnectSocket()
     }
 
+    // Nettoyage quand le composant est démonté ou user change
     return () => {
       disconnectSocket()
     }
+    // eslint-disable-next-line
   }, [user])
 
   const initializeSocket = () => {
     const token = getToken()
     if (!token) return
 
-    const newSocket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
-      auth: {
-        token: token
-      },
-      transports: ['websocket', 'polling']
+    // Utilisation de l'IP locale ou du fallback
+    const socketURL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'
+
+    // Déconnexion de l'ancien socket si présent
+    if (socketRef.current) {
+      socketRef.current.disconnect()
+    }
+
+    const newSocket = io(socketURL, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
     })
 
+    // Gestion des événements
     newSocket.on('connect', () => {
       console.log('Socket connecté:', newSocket.id)
       setConnected(true)
@@ -50,7 +60,6 @@ export const SocketProvider = ({ children }) => {
       toast.error('Erreur de connexion en temps réel')
     })
 
-    // Événements de jeu
     newSocket.on('gameCreated', (data) => {
       toast.success('Partie créée avec succès !')
     })
@@ -71,14 +80,6 @@ export const SocketProvider = ({ children }) => {
       toast.info('La partie commence !', {
         icon: '🚀'
       })
-    })
-
-    newSocket.on('newQuestion', (data) => {
-      // Sera géré par les composants de jeu
-    })
-
-    newSocket.on('questionEnded', (data) => {
-      // Sera géré par les composants de jeu
     })
 
     newSocket.on('answerSubmitted', (data) => {
@@ -123,83 +124,82 @@ export const SocketProvider = ({ children }) => {
       toast.info(`${data.username} a quitté la partie`)
     })
 
-    newSocket.on('spectatorJoined', (data) => {
-      // Notification silencieuse pour les spectateurs
-    })
+    // Pour silence ou custom
+    newSocket.on('spectatorJoined', () => {})
 
     newSocket.on('error', (data) => {
       toast.error(data.message)
     })
 
-    setSocket(newSocket)
+    socketRef.current = newSocket
   }
 
   const disconnectSocket = () => {
-    if (socket) {
-      socket.disconnect()
-      setSocket(null)
-      setConnected(false)
-      setCurrentGame(null)
-      setGameData(null)
+    if (socketRef.current) {
+      socketRef.current.disconnect()
+      socketRef.current = null
     }
+    setConnected(false)
+    setCurrentGame(null)
+    setGameData(null)
   }
 
   // Méthodes d'émission
   const createGame = (gameData) => {
-    if (socket) {
-      socket.emit('createGame', gameData)
+    if (socketRef.current) {
+      socketRef.current.emit('createGame', gameData)
     }
   }
 
   const joinGame = (gameId) => {
-    if (socket) {
-      socket.emit('joinGame', gameId)
+    if (socketRef.current) {
+      socketRef.current.emit('joinGame', gameId)
     }
   }
 
   const startGame = (gameId) => {
-    if (socket) {
-      socket.emit('startGame', gameId)
+    if (socketRef.current) {
+      socketRef.current.emit('startGame', gameId)
     }
   }
 
   const submitAnswer = (answerData) => {
-    if (socket) {
-      socket.emit('submitAnswer', answerData)
+    if (socketRef.current) {
+      socketRef.current.emit('submitAnswer', answerData)
     }
   }
 
   const leaveGame = () => {
-    if (socket && currentGame) {
-      socket.emit('leaveGame', currentGame)
+    if (socketRef.current && currentGame) {
+      socketRef.current.emit('leaveGame', currentGame)
       setCurrentGame(null)
       setGameData(null)
     }
   }
 
   const getGameStats = (gameId) => {
-    if (socket) {
-      socket.emit('getGameStats', gameId)
+    if (socketRef.current) {
+      socketRef.current.emit('getGameStats', gameId)
     }
   }
 
   // Méthodes d'écoute personnalisées
   const onGameEvent = (event, callback) => {
-    if (socket) {
-      socket.on(event, callback)
-      return () => socket.off(event, callback)
+    if (socketRef.current) {
+      socketRef.current.on(event, callback)
+      return () => socketRef.current.off(event, callback)
     }
     return () => {}
   }
 
   const offGameEvent = (event, callback) => {
-    if (socket) {
-      socket.off(event, callback)
+    if (socketRef.current) {
+      socketRef.current.off(event, callback)
     }
   }
 
   const value = {
-    socket,
+    socket: socketRef.current,
     connected,
     currentGame,
     gameData,
