@@ -418,4 +418,72 @@ router.get('/stats/detailed', auth, adminAuth, async (req, res) => {
   }
 })
 
+// Reset complet de la base de données
+router.post('/reset', auth, adminAuth, async (req, res) => {
+  try {
+    // Vérification supplémentaire de sécurité
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Accès refusé - Droits administrateur requis' })
+    }
+
+    logger.warn(`Début du reset de la base de données par ${req.user.username}`)
+
+    // 1. Supprimer toutes les parties (en cours et historiques)
+    const deletedGames = await Game.deleteMany({})
+    logger.info(`${deletedGames.deletedCount} parties supprimées`)
+
+    // 2. Réinitialiser les statistiques de tous les utilisateurs non-admin
+    const resetUsersResult = await User.updateMany(
+      { role: { $ne: 'admin' } }, // Tous sauf les admins
+      {
+        $set: {
+          'stats.totalGames': 0,
+          'stats.totalWins': 0,
+          'stats.totalCorrectAnswers': 0,
+          'stats.totalQuestions': 0,
+          'stats.averageResponseTime': 0,
+          'stats.currentStreak': 0,
+          'stats.bestStreak': 0,
+          'stats.totalScore': 0
+        },
+        $unset: {
+          'badges': 1,
+          'gameHistory': 1
+        }
+      }
+    )
+    logger.info(`${resetUsersResult.modifiedCount} utilisateurs réinitialisés`)
+
+    // 3. Réinitialiser les tableaux badges et gameHistory pour tous les utilisateurs non-admin
+    await User.updateMany(
+      { role: { $ne: 'admin' } },
+      {
+        $set: {
+          'badges': [],
+          'gameHistory': []
+        }
+      }
+    )
+
+    logger.warn(`Reset de la base de données terminé par ${req.user.username}`)
+
+    res.json({
+      success: true,
+      message: 'Base de données réinitialisée avec succès',
+      details: {
+        gamesDeleted: deletedGames.deletedCount,
+        usersReset: resetUsersResult.modifiedCount,
+        adminsPreserved: true
+      }
+    })
+
+  } catch (error) {
+    logger.error('Erreur lors du reset de la base de données:', error)
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erreur serveur lors de la réinitialisation' 
+    })
+  }
+})
+
 module.exports = router
