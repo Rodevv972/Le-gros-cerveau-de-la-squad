@@ -1,4 +1,4 @@
-const winston = require('winston');
+const winston = require('winston')
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -12,7 +12,7 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     new winston.transports.File({ filename: 'logs/combined.log' })
   ]
-});
+})
 
 // Si on n'est pas en production, on log aussi dans la console
 if (process.env.NODE_ENV !== 'production') {
@@ -21,7 +21,7 @@ if (process.env.NODE_ENV !== 'production') {
       winston.format.colorize(),
       winston.format.simple()
     )
-  }));
+  }))
 }
 
-module.exports = logger;
+module.exports = logger

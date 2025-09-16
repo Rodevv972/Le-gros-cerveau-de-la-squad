@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const gameSchema = new mongoose.Schema({
   name: {
@@ -125,22 +125,22 @@ const gameSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
-});
+})
 
 // Index pour les recherches
-gameSchema.index({ status: 1, createdAt: -1 });
-gameSchema.index({ createdBy: 1 });
-gameSchema.index({ 'players.userId': 1 });
+gameSchema.index({ status: 1, createdAt: -1 })
+gameSchema.index({ createdBy: 1 })
+gameSchema.index({ 'players.userId': 1 })
 
 // Méthode pour ajouter un joueur
 gameSchema.methods.addPlayer = function(user) {
   if (this.players.length >= this.maxPlayers) {
-    throw new Error('Partie complète');
+    throw new Error('Partie complète')
   }
   
-  const existingPlayer = this.players.find(p => p.userId.toString() === user._id.toString());
+  const existingPlayer = this.players.find(p => p.userId.toString() === user._id.toString())
   if (existingPlayer) {
-    throw new Error('Joueur déjà dans la partie');
+    throw new Error('Joueur déjà dans la partie')
   }
   
   this.players.push({
@@ -148,55 +148,55 @@ gameSchema.methods.addPlayer = function(user) {
     username: user.username,
     avatar: user.avatar,
     lives: this.settings.livesPerPlayer
-  });
+  })
   
-  this.gameStats.totalPlayers = this.players.length;
-};
+  this.gameStats.totalPlayers = this.players.length
+}
 
 // Méthode pour ajouter un spectateur
 gameSchema.methods.addSpectator = function(user) {
-  const existingSpectator = this.spectators.find(s => s.userId.toString() === user._id.toString());
+  const existingSpectator = this.spectators.find(s => s.userId.toString() === user._id.toString())
   if (!existingSpectator) {
     this.spectators.push({
       userId: user._id,
       username: user.username,
       avatar: user.avatar
-    });
-    this.gameStats.totalSpectators = this.spectators.length;
+    })
+    this.gameStats.totalSpectators = this.spectators.length
   }
-};
+}
 
 // Méthode pour retirer une vie à un joueur
 gameSchema.methods.removeLife = function(userId) {
-  const player = this.players.find(p => p.userId.toString() === userId.toString());
+  const player = this.players.find(p => p.userId.toString() === userId.toString())
   if (player) {
-    player.lives -= 1;
+    player.lives -= 1
     if (player.lives <= 0) {
-      player.isActive = false;
-      player.isSpectator = true;
+      player.isActive = false
+      player.isSpectator = true
       // Déplacer vers les spectateurs
       this.addSpectator({
         _id: player.userId,
         username: player.username,
         avatar: player.avatar
-      });
+      })
     }
   }
-};
+}
 
 // Méthode pour calculer le score d'une réponse
 gameSchema.methods.calculateScore = function(responseTime, isCorrect) {
-  if (!isCorrect) return 0;
+  if (!isCorrect) return 0
   
-  const basePoints = this.settings.pointsPerCorrectAnswer;
-  const maxBonusPoints = this.settings.bonusPointsForSpeed;
-  const timerSeconds = this.settings.questionTimer;
+  const basePoints = this.settings.pointsPerCorrectAnswer
+  const maxBonusPoints = this.settings.bonusPointsForSpeed
+  const timerSeconds = this.settings.questionTimer
   
   // Bonus basé sur la rapidité (plus on répond vite, plus on a de points)
-  const speedBonus = Math.max(0, maxBonusPoints * (1 - responseTime / (timerSeconds * 1000)));
+  const speedBonus = Math.max(0, maxBonusPoints * (1 - responseTime / (timerSeconds * 1000)))
   
-  return Math.round(basePoints + speedBonus);
-};
+  return Math.round(basePoints + speedBonus)
+}
 
 // Méthode pour mettre à jour le leaderboard
 gameSchema.methods.updateLeaderboard = function() {
@@ -204,9 +204,9 @@ gameSchema.methods.updateLeaderboard = function() {
     .filter(p => !p.isSpectator)
     .sort((a, b) => {
       // Tri par score décroissant, puis par nombre de vies décroissant
-      if (b.score !== a.score) return b.score - a.score;
-      return b.lives - a.lives;
-    });
+      if (b.score !== a.score) return b.score - a.score
+      return b.lives - a.lives
+    })
   
   this.leaderboard = activePlayers.map((player, index) => ({
     userId: player.userId,
@@ -215,37 +215,37 @@ gameSchema.methods.updateLeaderboard = function() {
     position: index + 1,
     lives: player.lives,
     isActive: player.isActive
-  }));
-};
+  }))
+}
 
 // Méthode pour vérifier si la partie est terminée
 gameSchema.methods.isGameOver = function() {
-  const activePlayers = this.players.filter(p => p.isActive && !p.isSpectator);
-  return activePlayers.length <= 1 || this.currentQuestionIndex >= this.questions.length;
-};
+  const activePlayers = this.players.filter(p => p.isActive && !p.isSpectator)
+  return activePlayers.length <= 1 || this.currentQuestionIndex >= this.questions.length
+}
 
 // Méthode pour finir la partie
 gameSchema.methods.finishGame = function() {
-  this.status = 'finished';
-  this.finishedAt = new Date();
+  this.status = 'finished'
+  this.finishedAt = new Date()
   
-  this.updateLeaderboard();
+  this.updateLeaderboard()
   
   if (this.leaderboard.length > 0) {
-    this.winner = this.leaderboard[0].userId;
+    this.winner = this.leaderboard[0].userId
   }
   
   // Calcul des statistiques finales
-  const totalScore = this.players.reduce((sum, p) => sum + p.score, 0);
-  this.gameStats.averageScore = totalScore / this.players.length;
+  const totalScore = this.players.reduce((sum, p) => sum + p.score, 0)
+  this.gameStats.averageScore = totalScore / this.players.length
   
   const totalResponseTime = this.players.reduce((sum, p) => {
-    const playerAvgTime = p.answers.reduce((avgSum, a) => avgSum + (a.responseTime || 0), 0) / (p.answers.length || 1);
-    return sum + playerAvgTime;
-  }, 0);
-  this.gameStats.averageResponseTime = totalResponseTime / this.players.length;
+    const playerAvgTime = p.answers.reduce((avgSum, a) => avgSum + (a.responseTime || 0), 0) / (p.answers.length || 1)
+    return sum + playerAvgTime
+  }, 0)
+  this.gameStats.averageResponseTime = totalResponseTime / this.players.length
   
-  this.gameStats.questionsAnswered = this.currentQuestionIndex;
-};
+  this.gameStats.questionsAnswered = this.currentQuestionIndex
+}
 
-module.exports = mongoose.model('Game', gameSchema);
+module.exports = mongoose.model('Game', gameSchema)
